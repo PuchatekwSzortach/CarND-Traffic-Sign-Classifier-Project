@@ -3,12 +3,16 @@ Simple script to make traffic signs prediction movie
 """
 import pickle
 import random
+import itertools
+
 
 import tensorflow as tf
 import numpy as np
 import cv2
 import pandas
 import sklearn.utils
+import moviepy.video
+import moviepy.editor
 
 
 def get_test_data(path):
@@ -112,6 +116,52 @@ def get_samples_dictionary(images, labels, n_classes, samples_per_class):
 
     return samples_dictionary
 
+def get_movie_clip(images_predictions_tuples, classes_dictionary):
+
+    images = [images[0] for images, _ in images_predictions_tuples]
+    images = [cv2.resize(image, (320, 320)) for image in images]
+
+    horizontal_padding = 80
+    vertical_padding = 40
+    padding_scheme = [(vertical_padding, vertical_padding), (horizontal_padding, horizontal_padding), (0, 0)]
+
+    images = [np.pad(image, pad_width=padding_scheme, mode='constant') for image in images]
+
+    # Repeat each image - since moviepy seems to have hard time handling fps less than 1
+    image_repeats_count = 20
+    repeated_images = [list(itertools.repeat(image, image_repeats_count)) for image in images]
+
+    images_sequence = []
+
+    for sequence in repeated_images:
+
+        images_sequence.extend(sequence)
+
+    fps = 4
+    seconds_per_images = image_repeats_count / fps
+
+    clip = moviepy.editor.ImageSequenceClip(images_sequence, fps=fps)
+
+    txt_clips = []
+
+    for index, (images, predictions) in enumerate(images_predictions_tuples):
+
+        prediction_confidences = predictions.values[0]
+        prediction_indices = predictions.indices[0]
+
+        text = "{}:\n{:.2f}%".format(classes_dictionary[prediction_indices[0]], 100 * prediction_confidences[0])
+
+        text_clip = moviepy.editor.TextClip(txt=text, fontsize=16, color='white')\
+            .set_start(index * seconds_per_images) \
+            .set_end((index + 1) * seconds_per_images) \
+            .set_position(['center', 'bottom']) \
+
+        txt_clips.append(text_clip)
+
+    composite_clip = moviepy.editor.CompositeVideoClip([clip] + txt_clips)
+
+    return composite_clip
+
 
 def main():
 
@@ -147,20 +197,8 @@ def main():
 
             images_predictions_tuples.append((samples, predictions))
 
-    for images, predictions in sklearn.utils.shuffle(images_predictions_tuples):
-
-        print()
-
-        image = cv2.resize(cv2.cvtColor(images[0], cv2.COLOR_RGB2BGR), (128, 128))
-        cv2.imshow("image", image)
-
-        for prediction, prediction_index in zip(predictions.values[0], predictions.indices[0]):
-            print("{}: {}%".format(classes_dictionary[prediction_index], 100 * prediction))
-
-        cv2.waitKey(0)
-
-
-
+    clip = get_movie_clip(sklearn.utils.shuffle(images_predictions_tuples), classes_dictionary)
+    clip.write_videofile("../../data/traffic-signs-data/movie.mp4")
 
 
 if __name__ == "__main__":
