@@ -22,11 +22,11 @@ The goals / steps of this project are the following:
 [image1]: ./examples/visualization.jpg "Visualization"
 [image2]: ./examples/grayscale.jpg "Grayscaling"
 [image3]: ./examples/random_noise.jpg "Random Noise"
-[image4]: ./examples/placeholder.png "Traffic Sign 1"
-[image5]: ./examples/placeholder.png "Traffic Sign 2"
-[image6]: ./examples/placeholder.png "Traffic Sign 3"
-[image7]: ./examples/placeholder.png "Traffic Sign 4"
-[image8]: ./examples/placeholder.png "Traffic Sign 5"
+[image4]: ../../data/traffic-signs-data/additional/sign_1_crop.jpg "Traffic Sign 1"
+[image5]: ../../data/traffic-signs-data/additional/sign_2_crop.jpg "Traffic Sign 2"
+[image6]: ../../data/traffic-signs-data/additional/sign_3_crop.jpg "Traffic Sign 3"
+[image7]: ../../data/traffic-signs-data/additional/sign_4_crop.jpg "Traffic Sign 4"
+[image8]: ../../data/traffic-signs-data/additional/sign_5_crop.jpg "Traffic Sign 5"
 [dataset_distribution]: ./examples/dataset_distribution.png "Dataset distribution"
 
 ## Rubric Points
@@ -80,50 +80,58 @@ Data was already split into training, test and validation sets in provided code 
 
 ####3. Describe, and identify where in your code, what your final model architecture looks like including model type, layers, layer sizes, connectivity, etc.) Consider including a diagram and/or table describing the final model.
 
-The code for my final model is located in the seventh cell of the ipython notebook. 
+Cell [11] sets up placeholders for images and labels, as well as for keep probability and learning rate, since I'm using dropout layer and variable learning rate.
 
-My final model consisted of the following layers:
+Predictio model, as well as loss and accuracy ops, are located in cell [12]. My model is a simple fully convolutional network inspired by VGG net.
 
-| Layer         		|     Description	        					| 
+Here's a summary:
+
+| Layer         		|     Description | 
 |:---------------------:|:---------------------------------------------:| 
-| Input         		| 32x32x3 RGB image   							| 
-| Convolution 3x3     	| 1x1 stride, same padding, outputs 32x32x64 	|
-| RELU					|												|
-| Max pooling	      	| 2x2 stride,  outputs 16x16x64 				|
-| Convolution 3x3	    | etc.      									|
-| Fully connected		| etc.        									|
-| Softmax				| etc.        									|
-|						|												|
-|						|												|
- 
+| Input         		| 32x32x3 RGB image  | 
+| Convolution 3x3     	| 1x1 stride, valid padding, 32 filters |
+| ELU					|
+| Max pooling	      	| 2x2 stride |
+| Dropout     	| 0.5 keep probability at training |
+| Convolution 3x3     	| 1x1 stride, valid padding, 32 filters |
+| ELU					|
+| Max pooling	      	| 2x2 stride |
+| Dropout     	| 0.5 keep probability at training |
+| Convolution 3x3     	| 1x1 stride, valid padding, num labels filters |
+| ELU					|
+
+My initial network contained more filters, but some experiments showed that decreasing filters count didn't hurt performance at all. I also tried using L1 and L2 losses to fight ~5% overfitting to training set, but to no effect - I couldn't decrease overfitting without hurting overall performance.
 
 
 ####4. Describe how, and identify where in your code, you trained your model. The discussion can include the type of optimizer, the batch size, number of epochs and any hyperparameters such as learning rate.
 
-The code for training the model is located in the eigth cell of the ipython notebook. 
+Cell [13] contains a simple helper function to evaluate performance on a dateset.
+Training is done in cell [14]. There are only a few points worth mentioning:  
+* I used variable training rate, going with 0.001 for first 5 epochs and 0.0002 for last 5 epochs  
+* I train on rebalanced training set, but estimate training set statistics on original dataset. This is because rebalanced dataset simply repeats many elements, hence its statistics would be skewed  
 
-To train the model, I used an ....
+Everything else pretty much follows standard practices. 128 batch size, which I didn't try to optimize at all, and Adam optimizer, which has served me well in many projects so far and is my default choice.
 
 ####5. Describe the approach taken for finding a solution. Include in the discussion the results on the training, validation and test sets and where in the code these were calculated. Your approach may have been an iterative process, in which case, outline the steps you took to get to the final solution and why you chose those steps. Perhaps your solution involved an already well known implementation or architecture. In this case, discuss why you think the architecture is suitable for the current problem.
 
-The code for calculating the accuracy of the model is located in the ninth cell of the Ipython notebook.
+Accuracy on training and validations sets are reported in cell [14] and for test set in cell [15]
 
 My final model results were:
-* training set accuracy of ?
-* validation set accuracy of ? 
-* test set accuracy of ?
+* training set accuracy of 0.9961
+* validation set accuracy of 0.9547
+* test set accuracy of 0.9450
 
-If an iterative approach was chosen:
-* What was the first architecture that was tried and why was it chosen?
-* What were some problems with the initial architecture?
-* How was the architecture adjusted and why was it adjusted? Typical adjustments could include choosing a different model architecture, adding or taking away layers (pooling, dropout, convolution, etc), using an activation function or changing the activation function. One common justification for adjusting an architecture would be due to over fitting or under fitting. A high accuracy on the training set but low accuracy on the validation set indicates over fitting; a low accuracy on both sets indicates under fitting.
-* Which parameters were tuned? How were they adjusted and why?
-* What are some of the important design choices and why were they chosen? For example, why might a convolution layer work well with this problem? How might a dropout layer help with creating a successful model?
+As one can see model clearly overfits to training data. I tried using L1 and L2 losses to prevent that, but to no avail - small regularization coefficient didn't change output at all and increating it hurt overall performance (although indeed narrowed the accuracy between training and validation sets somewhat).
 
-If a well known architecture was chosen:
-* What architecture was chosen?
-* Why did you believe it would be relevant to the traffic sign application?
-* How does the final model's accuracy on the training, validation and test set provide evidence that the model is working well?
+I used a slightly modified design of VGG net that uses blocks [3x3 convolution, 3x3 convolution, max pooling]. My network uses only two blocks of [3x3 convolution, max pooling, dropout], since problem is simple enough that introductiong more layers doesn't bring much benefit. After two block network output is [batch_size, 6, 6, 32] and I map it to classes with a classes count (or 43) filters of size [6, 6]. This is exactly equivalent to having a single fully connected layer instead. 
+
+My intial network followed above design with larger number of layers and filters, but I found that a thinner and more shallow network achieved just as good results. I experimented with different learning rates and decided that using 0.001 on first 5 epochs and 0.0002 on last 5 was optimal. I trained for only 10 epochs and it seems like some small improvements could had been gained by learning longer.
+
+My network is fully convolutional, which can be understood as having only a single fully connected layer at the end. Increating number of fully connected layers to 2 or 3 could likely bring up the accuracy somewhat, but I didn't try this.
+
+I also expect using a dynamic data augmentation scheme that would randomly perturb images intensities, rotate and translate them as well as scale (and crop when necesary) them would boost the accuracy by an appreciable margin. Again, I didn't try this approach, since I'm not trying to beat benchmarks in this project.
+
+As noted before, my simple intensity equalization scheme works on most, but not all images. A more robust scheme, a different colorspace or a representation less sensitive to illumination would likely yield improved results.
  
 
 ###Test a Model on New Images
@@ -135,38 +143,45 @@ Here are five German traffic signs that I found on the web:
 ![alt text][image4] ![alt text][image5] ![alt text][image6] 
 ![alt text][image7] ![alt text][image8]
 
-The first image might be difficult to classify because ...
+They are also plotted in cell [16].
+
+I didn't choose images to be particularly tricky. Still, following could trip up the network:  
+* First image, or "Right-of-way at the next intersection", is aligned a bit different that training set images. In all training set images center of sign seems to be exactly at the center of image, while in this test image sign is shifted up a bit, so that it occupies mostly upper half of the image.  
+* Second to last image, or "No entry" sign, has a large out of plane rotation. Training dataset contains some out of plane rotations, but they don't seem to be as strong.
 
 ####2. Discuss the model's predictions on these new traffic signs and compare the results to predicting on the test set. Identify where in your code predictions were made. At a minimum, discuss what the predictions were, the accuracy on these new predictions, and compare the accuracy to the accuracy on the test set (OPTIONAL: Discuss the results in more detail as described in the "Stand Out Suggestions" part of the rubric).
 
-The code for making predictions on my final model is located in the tenth cell of the Ipython notebook.
+Logits predictions for test images are calculated in cell [17] and accuracy in cell [18]. Prediction probablities and top 5 k results are calculated in cell [19].
 
 Here are the results of the prediction:
 
 | Image			        |     Prediction	        					| 
 |:---------------------:|:---------------------------------------------:| 
-| Stop Sign      		| Stop sign   									| 
-| U-turn     			| U-turn 										|
-| Yield					| Yield											|
-| 100 km/h	      		| Bumpy Road					 				|
-| Slippery Road			| Slippery Road      							|
+| Right-of-way at the next intersection | No entry | 
+| Speed limit (30km/h)    			| Speed limit (30km/h) |
+| Priority road					| Priority road |
+| No entry	      		| No entry |
+| Speed limit (120km/h)			| Speed limit (120km/h)  |
 
 
-The model was able to correctly guess 4 of the 5 traffic signs, which gives an accuracy of 80%. This compares favorably to the accuracy on the test set of ...
+The model was able to correctly guess 4 of the 5 traffic signs, which gives an accuracy of 80%. With a test set of only 5 images it would be wrong to make any statements about real world accuracy at large, but results at at least promising.
 
 ####3. Describe how certain the model is when predicting on each of the five new images by looking at the softmax probabilities for each prediction and identify where in your code softmax probabilities were outputted. Provide the top 5 softmax probabilities for each image along with the sign type of each probability. (OPTIONAL: as described in the "Stand Out Suggestions" part of the rubric, visualizations can also be provided such as bar charts)
 
-The code for making predictions on my final model is located in the 11th cell of the Ipython notebook.
+Softmax computations are done in cell [19].
+Model is 100% sure about all of its predictions, including the the single wrong prediction. Since all but top prediction had true 0% (rather than say 0.0001%) confidence, reporting top predictions 2 to 5, as well as their orders, isn't meanigful - it's just the order in which labels are defined by numerical ids:
 
-For the first image, the model is relatively sure that this is a stop sign (probability of 0.6), and the image does contain a stop sign. The top five soft max probabilities were
+For Right-of-way at the next intersection:
+	No entry: 100.0% (WRONG PREDICTION), everything else 0%
+	
+For Speed limit (30km/h):
+	Speed limit (30km/h): 100.0%, everything else 0%
+	
+For Priority road:
+	Priority road: 100.0%, everything else 0%
 
-| Probability         	|     Prediction	        					| 
-|:---------------------:|:---------------------------------------------:| 
-| .60         			| Stop sign   									| 
-| .20     				| U-turn 										|
-| .05					| Yield											|
-| .04	      			| Bumpy Road					 				|
-| .01				    | Slippery Road      							|
-
-
-For the second image ... 
+For No entry:
+	No entry: 100.0%, everything else 0%
+	
+For Speed limit (120km/h):
+	Speed limit (120km/h): 100.0%, everything else 0%
