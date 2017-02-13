@@ -111,7 +111,7 @@ def main():
     with tf.Session() as session:
 
         saver = tf.train.Saver()
-        saver.restore(session, "../../data/traffic-signs-data/model.ckpt")
+        saver.restore(session, "../../data/traffic-signs-data/model/model.ckpt")
 
         loss, accuracy = get_statistics(
             session, loss_op, accuracy_op, images_placeholder, labels_placeholder, keep_probability_placeholder,
