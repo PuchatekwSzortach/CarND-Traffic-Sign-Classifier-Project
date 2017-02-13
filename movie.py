@@ -2,9 +2,13 @@
 Simple script to make traffic signs prediction movie
 """
 import pickle
+import random
 
 import tensorflow as tf
 import numpy as np
+import cv2
+import pandas
+import sklearn.utils
 
 
 def get_test_data(path):
@@ -88,37 +92,75 @@ def equalize_image(image):
     equalized_image = np.dstack([equalize_channel(image[:, :, channel].astype(np.float32)) for channel in range(3)])
     return equalized_image.astype(np.uint8)
 
+
+def get_preprocessed_samples(samples):
+
+    return np.array([equalize_image(image) for image in samples]).astype(np.float32) / 255
+
+
+
+def get_samples_dictionary(images, labels, n_classes, samples_per_class):
+
+    samples_dictionary = {}
+
+    for label_index in range(n_classes):
+
+        indices = np.where(labels == label_index)[0]
+        random.shuffle(indices)
+
+        samples_dictionary[label_index] = images[indices[:samples_per_class]]
+
+    return samples_dictionary
+
+
 def main():
 
     x_test, y_test = get_test_data("../../data/traffic-signs-data/test.p")
     n_classes = len(set(y_test))
 
-    # Preprocessing
-    x_test_processed = np.array([equalize_image(image) for image in x_test]).astype(np.float32) / 255
+    data_frame = pandas.read_csv("./signnames.csv")
+    classes_dictionary = {int(id): class_name for id, class_name in zip(data_frame['ClassId'], data_frame['SignName'])}
 
     images_placeholder = tf.placeholder(dtype=tf.float32, shape=[None, 32, 32, 3])
-    labels_placeholder = tf.placeholder(dtype=tf.uint8, shape=[None])
     keep_probability_placeholder = tf.placeholder(dtype=tf.float32)
 
     logits_op = get_model(images_placeholder, keep_probability_placeholder, n_classes)
+    softmax_op = tf.nn.softmax(logits_op)
+    top_5_prediction = tf.nn.top_k(softmax_op, k=5)
 
-    loss_op = tf.reduce_mean(
-        tf.nn.softmax_cross_entropy_with_logits(logits_op, tf.one_hot(labels_placeholder, n_classes)))
+    samples_dictionary = get_samples_dictionary(x_test, y_test, n_classes, 10)
 
-    accuracy_op = tf.reduce_mean(
-        tf.cast(tf.equal(tf.argmax(logits_op, axis=1), tf.cast(labels_placeholder, tf.int64)), tf.float32))
+    images_predictions_tuples = []
 
     with tf.Session() as session:
 
         saver = tf.train.Saver()
         saver.restore(session, "../../data/traffic-signs-data/model/model.ckpt")
 
-        loss, accuracy = get_statistics(
-            session, loss_op, accuracy_op, images_placeholder, labels_placeholder, keep_probability_placeholder,
-        x_test_processed, y_test, 128)
+        for label, samples in samples_dictionary.items():
 
-        print(loss)
-        print(accuracy)
+            feed_dictionary = {
+                images_placeholder: get_preprocessed_samples(samples),
+                keep_probability_placeholder: 1}
+
+            predictions = session.run(top_5_prediction, feed_dict=feed_dictionary)
+
+            images_predictions_tuples.append((samples, predictions))
+
+    for images, predictions in sklearn.utils.shuffle(images_predictions_tuples):
+
+        print()
+
+        image = cv2.resize(cv2.cvtColor(images[0], cv2.COLOR_RGB2BGR), (128, 128))
+        cv2.imshow("image", image)
+
+        for prediction, prediction_index in zip(predictions.values[0], predictions.indices[0]):
+            print("{}: {}%".format(classes_dictionary[prediction_index], 100 * prediction))
+
+        cv2.waitKey(0)
+
+
+
 
 
 if __name__ == "__main__":
