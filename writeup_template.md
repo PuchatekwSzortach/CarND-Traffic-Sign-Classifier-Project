@@ -65,9 +65,9 @@ Histogram plots show distribution of labels in training, validation and test set
 
 ####1. Describe how, and identify where in your code, you preprocessed the image data. What techniques were chosen and why did you choose these techniques? Consider including images showing the output of each preprocessing technique. Pre-processing refers to techniques such as converting to grayscale, normalization, etc.
 
-I did three simple preprocessing steps. Images equalization to reduce some of illumination problem, rebalancing training dataset to address low number of samples for certain labels and scaling images to 0-1 range.
+I did three simple preprocessing steps. Images equalization to reduce some of illumination problem, rebalancing training dataset to address low number of samples for certain labels and scaling images to 0-1 float range.
 
-Cell [7] contains code for equalizing image channels. This is done with a simple scheme that remaps image values so that they are spread from 0 to 255 values. It works reasonably well on many dark images, but doesn't achieve much for dark images that have some small number of white pixels. Cell [10] contains plots of equalized images, showing that indeed many dark images are now easier brighter and show greater colour varience.
+Cell [7] contains code for equalizing image channels. This is done with a simple scheme that remaps image values so that they are spread from 0 to 255 values. It works reasonably well on many dark images, but doesn't achieve much for dark images that have some small number of white pixels. Cell [10] contains plots of equalized images, showing that indeed many dark images are now brighter and show greater colour variation.
 
 In cell [8] I rebalance training dataset so that each label has as many samples as label with largest number of samples. Rebalancing is done simply copying existing labels - a very crude scheme that could be improved upon with augmentation. Still, this simple approach improved my validation accuracy by ~2%. 
 
@@ -82,7 +82,7 @@ Data was already split into training, test and validation sets in provided code 
 
 Cell [11] sets up placeholders for images and labels, as well as for keep probability and learning rate, since I'm using dropout layer and variable learning rate.
 
-Predictio model, as well as loss and accuracy ops, are located in cell [12]. My model is a simple fully convolutional network inspired by VGG net.
+Prediction model, as well as loss and accuracy ops, are located in cell [12]. My model is a simple fully convolutional network inspired by VGG net.
 
 Here's a summary:
 
@@ -116,22 +116,22 @@ Everything else pretty much follows standard practices. 128 batch size, which I 
 
 Accuracy on training and validations sets are reported in cell [14] and for test set in cell [15]
 
-My final model results were:
-* training set accuracy of 0.9961
-* validation set accuracy of 0.9547
-* test set accuracy of 0.9450
+My final model results were:  
+* training set accuracy of 0.9961  
+* validation set accuracy of 0.9547  
+* test set accuracy of 0.9450  
 
-As one can see model clearly overfits to training data. I tried using L1 and L2 losses to prevent that, but to no avail - small regularization coefficient didn't change output at all and increating it hurt overall performance (although indeed narrowed the accuracy between training and validation sets somewhat).
+As one can see model clearly overfits to training data. I tried using L1 and L2 losses to prevent that, but to no avail - small regularization coefficient didn't change output at all and increasing it hurt overall performance (although indeed narrowed the accuracy between training and validation sets somewhat).
 
-I used a slightly modified design of VGG net that uses blocks [3x3 convolution, 3x3 convolution, max pooling]. My network uses only two blocks of [3x3 convolution, max pooling, dropout], since problem is simple enough that introductiong more layers doesn't bring much benefit. After two block network output is [batch_size, 6, 6, 32] and I map it to classes with a classes count (or 43) filters of size [6, 6]. This is exactly equivalent to having a single fully connected layer instead. 
+I used a slightly modified design of VGG net that uses blocks [3x3 convolution, 3x3 convolution, max pooling]. My network uses only two blocks of [3x3 convolution, max pooling, dropout], since problem is simple enough that introducing more layers doesn't bring much benefit. After two blocks network output is [batch_size, 6, 6, 32] and I map it to classes with a classes count (or 43) filters of size [6, 6]. This is exactly equivalent to a single fully connected layer. 
 
-My intial network followed above design with larger number of layers and filters, but I found that a thinner and more shallow network achieved just as good results. I experimented with different learning rates and decided that using 0.001 on first 5 epochs and 0.0002 on last 5 was optimal. I trained for only 10 epochs and it seems like some small improvements could had been gained by learning longer.
+My intial network followed above design with larger number of layers and filters, but I found that a thinner and more shallow network achieved just as good results. I experimented with different learning rates and decided that using 0.001 for first 5 epochs and 0.0002 for last 5 was optimal. I trained for only 10 epochs and it seems that network continued to learn, so possibly small improvements could be gained by training longer.
 
-My network is fully convolutional, which can be understood as having only a single fully connected layer at the end. Increating number of fully connected layers to 2 or 3 could likely bring up the accuracy somewhat, but I didn't try this.
+My network is fully convolutional, which is equivalent to having only a single fully connected layer at the end. Increasing number of fully connected layers to 2 or 3 could likely bring up the accuracy somewhat, but I didn't try this.
 
-I also expect using a dynamic data augmentation scheme that would randomly perturb images intensities, rotate and translate them as well as scale (and crop when necesary) them would boost the accuracy by an appreciable margin. Again, I didn't try this approach, since I'm not trying to beat benchmarks in this project.
+I also expect using a dynamic data augmentation scheme that would randomly perturb images intensities, rotate and translate them as well as scale them (and crop when necesary) would boost the accuracy by an appreciable margin. Again, I didn't try this approach, since I'm not trying to beat benchmarks in this project.
 
-As noted before, my simple intensity equalization scheme works on most, but not all images. A more robust scheme, a different colorspace or a representation less sensitive to illumination would likely yield improved results.
+As noted before, my simple intensity equalization scheme works on most, but not all images. A more robust scheme, a different colorspace or, more generally, a representation less sensitive to illumination would likely yield improved results.
  
 
 ###Test a Model on New Images
@@ -164,12 +164,12 @@ Here are the results of the prediction:
 | Speed limit (120km/h)			| Speed limit (120km/h)  |
 
 
-The model was able to correctly guess 4 of the 5 traffic signs, which gives an accuracy of 80%. With a test set of only 5 images it would be wrong to make any statements about real world accuracy at large, but results at at least promising.
+The model was able to correctly guess 4 of the 5 traffic signs, which gives an accuracy of 80%. With a test set of only 5 images it would be wrong to make any statements about real world accuracy at large, but results are at least promising.
 
 ####3. Describe how certain the model is when predicting on each of the five new images by looking at the softmax probabilities for each prediction and identify where in your code softmax probabilities were outputted. Provide the top 5 softmax probabilities for each image along with the sign type of each probability. (OPTIONAL: as described in the "Stand Out Suggestions" part of the rubric, visualizations can also be provided such as bar charts)
 
 Softmax computations are done in cell [19].
-Model is 100% sure about all of its predictions, including the the single wrong prediction. Since all but top prediction had true 0% (rather than say 0.0001%) confidence, reporting top predictions 2 to 5, as well as their orders, isn't meanigful - it's just the order in which labels are defined by numerical ids:
+Model is 100% sure about all of its predictions, including the the single wrong prediction. Since all but top prediction had true 0% (rather than say 0.0001%) confidence, reporting top predictions 2 to 5, as well as their orders, isn't meanigful - it's just the order in which labels are defined by numerical ids. Therefore in here I only provide top prediction, for top 5 output please refer to cell [19].
 
 For Right-of-way at the next intersection:
 	No entry: 100.0% (WRONG PREDICTION), everything else 0%
