@@ -27,6 +27,7 @@ The goals / steps of this project are the following:
 [image6]: ./examples/placeholder.png "Traffic Sign 3"
 [image7]: ./examples/placeholder.png "Traffic Sign 4"
 [image8]: ./examples/placeholder.png "Traffic Sign 5"
+[dataset_distribution]: ./examples/dataset_distribution.png "Dataset distribution"
 
 ## Rubric Points
 ###Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/481/view) individually and describe how I addressed each point in my implementation.  
@@ -36,60 +37,46 @@ The goals / steps of this project are the following:
 
 ####1. Provide a Writeup / README that includes all the rubric points and how you addressed each one. You can submit your writeup as markdown or pdf. You can use this template as a guide for writing the report. The submission includes the project code.
 
-You're reading it! and here is a link to my [project code](https://github.com/udacity/CarND-Traffic-Sign-Classifier-Project/blob/master/Traffic_Sign_Classifier.ipynb)
+You're reading it! and here is a link to my [project code](https://github.com/PuchatekwSzortach/CarND-Traffic-Sign-Classifier-Project/blob/master/Traffic_Sign_Classifier.ipynb)
 
 ###Data Set Summary & Exploration
 
 ####1. Provide a basic summary of the data set and identify where in your code the summary was done. In the code, the analysis should be done using python, numpy and/or pandas methods rather than hardcoding results manually.
 
-The code for this step is contained in the second code cell of the IPython notebook.  
+Simple dataset summaries are done in cell [2]. I used basic Python and numpy to get datset sizes and label counts.
 
-I used the pandas library to calculate summary statistics of the traffic
-signs data set:
-
-* The size of training set is ?
-* The size of test set is ?
-* The shape of a traffic sign image is ?
-* The number of unique classes/labels in the data set is ?
+* The size of training set is 34799
+* The size of test set is 12630
+* The shape of a traffic sign image is (32, 32, 3)
+* The number of unique classes/labels in the data set is 43
 
 ####2. Include an exploratory visualization of the dataset and identify where the code is in your code file.
 
-The code for this step is contained in the third code cell of the IPython notebook.  
+Cell [3] contains code to map class ids to string names and a function that samples
+images for each label from dataset. Cell [4] contains a function for plotting samples.
+In cell [5] I perform sampling and plot 10 samples for each category. An important insight is that many images are very dark, presumably taken at night in low illumination. Even human has to squint hard to be able to recognize these images.
 
-Here is an exploratory visualization of the data set. It is a bar chart showing how the data ...
+In cell [6] I plot distribution of examples for each plot, also reproduced below.
+![alt text][dataset_distribution]
 
-![alt text][image1]
+Histogram plots show distribution of labels in training, validation and test sets. One can see that they are heavily imbalanced, with some labels having only 10% as many examples as labels with large count of samples.
 
 ###Design and Test a Model Architecture
 
-####1. Describe how, and identify where in your code, you preprocessed the image data. What tecniques were chosen and why did you choose these techniques? Consider including images showing the output of each preprocessing technique. Pre-processing refers to techniques such as converting to grayscale, normalization, etc.
+####1. Describe how, and identify where in your code, you preprocessed the image data. What techniques were chosen and why did you choose these techniques? Consider including images showing the output of each preprocessing technique. Pre-processing refers to techniques such as converting to grayscale, normalization, etc.
 
-The code for this step is contained in the fourth code cell of the IPython notebook.
+I did three simple preprocessing steps. Images equalization to reduce some of illumination problem, rebalancing training dataset to address low number of samples for certain labels and scaling images to 0-1 range.
 
-As a first step, I decided to convert the images to grayscale because ...
+Cell [7] contains code for equalizing image channels. This is done with a simple scheme that remaps image values so that they are spread from 0 to 255 values. It works reasonably well on many dark images, but doesn't achieve much for dark images that have some small number of white pixels. Cell [10] contains plots of equalized images, showing that indeed many dark images are now easier brighter and show greater colour varience.
 
-Here is an example of a traffic sign image before and after grayscaling.
+In cell [8] I rebalance training dataset so that each label has as many samples as label with largest number of samples. Rebalancing is done simply copying existing labels - a very crude scheme that could be improved upon with augmentation. Still, this simple approach improved my validation accuracy by ~2%. 
 
-![alt text][image2]
+Cell [9] plots distribution of rebalanced dataset to show that indeed each label is represented by an equal number of samples.
 
-As a last step, I normalized the image data because ...
 
 ####2. Describe how, and identify where in your code, you set up training, validation and testing data. How much data was in each set? Explain what techniques were used to split the data into these sets. (OPTIONAL: As described in the "Stand Out Suggestions" part of the rubric, if you generated additional data for training, describe why you decided to generate additional data, how you generated the data, identify where in your code, and provide example images of the additional data)
 
-The code for splitting the data into training and validation sets is contained in the fifth code cell of the IPython notebook.  
-
-To cross validate my model, I randomly split the training data into a training set and validation set. I did this by ...
-
-My final training set had X number of images. My validation set and test set had Y and Z number of images.
-
-The sixth code cell of the IPython notebook contains the code for augmenting the data set. I decided to generate additional data because ... To add more data to the the data set, I used the following techniques because ... 
-
-Here is an example of an original image and an augmented image:
-
-![alt text][image3]
-
-The difference between the original data set and the augmented data set is the following ... 
-
+Data was already split into training, test and validation sets in provided code (as per cell [1]). The only significant change I made was rebalancing training dataset in cell [8], as noted above. One could get much more fancy with augmented datasets, but for this project I chose to stick to simple, quick approaches.
 
 ####3. Describe, and identify where in your code, what your final model architecture looks like including model type, layers, layer sizes, connectivity, etc.) Consider including a diagram and/or table describing the final model.
 
